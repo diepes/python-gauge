@@ -4,14 +4,16 @@ Copyright (C) 2018 FireEye, Inc., created by Andrew Shay. All Rights Reserved.
 
 import PIL
 
-from PIL import Image
+from PIL import Image, ImageDraw
 import math
 import os
 import glob
 
 debug = False
 
-percentages = [ 0, 25, 50, 75, 100 ]  # Percent for gauge
+# percentages = [ 0, 25, 50, 75, 100 ]  # Percent for gauge
+percentages = range(0, 101, 10)
+
 output_file_name_template = 'new_gauge_{percent}%.png'
 fileList = glob.glob(output_file_name_template.format(percent="*"))
 for filePath in fileList: os.remove(filePath)
@@ -46,4 +48,9 @@ for percent in percentages:
 
     print(f"Debug {[item1 + item2 for item1, item2 in zip(locGaugePlaceNeedle, locNeedleRotate)]} {fnImgNeedle}:{dial.size} {fnImgGauge}:{gauge.size} place:{locCalcPlaceNeedle} rotation:{rotation}")
     gauge.paste(dial, locCalcPlaceNeedle, mask=dial)  # Paste needle onto gauge
+
+    gaugeDraw = ImageDraw.Draw(gauge)
+    print(f"DEBUG:: {locGaugePlaceNeedle[0]-50}, {locGaugePlaceNeedle[0]+200}")
+    gaugeDraw.text((locGaugePlaceNeedle[0]-10, locGaugePlaceNeedle[0]+120), f"%{percent}", outline='red', fill='blue')
+
     gauge.save(output_file_name_template.format(percent=percent))
