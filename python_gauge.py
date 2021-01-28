@@ -5,23 +5,45 @@ Copyright (C) 2018 FireEye, Inc., created by Andrew Shay. All Rights Reserved.
 import PIL
 
 from PIL import Image
+import math
+import os
+import glob
 
-percent = 70  # Percent for gauge
-output_file_name = 'new_gauge.png'
+debug = False
 
-# X and Y coordinates of the center bottom of the needle starting from the top left corner
-#   of the image
-x = 825
-y = 825
-loc = (x, y)
+percentages = [ 0, 25, 50, 75, 100 ]  # Percent for gauge
+output_file_name_template = 'new_gauge_{percent}%.png'
+fileList = glob.glob(output_file_name_template.format(percent="*"))
+for filePath in fileList: os.remove(filePath)
 
-percent = percent / 100
-rotation = 180 * percent  # 180 degrees because the gauge is half a circle
-rotation = 90 - rotation  # Factor in the needle graphic pointing to 50 (90 degrees)
+fnImgNeedle = 'needle-red.png'
+locNeedleRotate = (510, 480)
+NeedleResizeFactor = 0.28
 
-dial = Image.open('needle.png')
-dial = dial.rotate(rotation, resample=PIL.Image.BICUBIC, center=loc)  # Rotate needle
+fnImgGauge = 'gauge-md.png'
+locGaugePlaceNeedle = (150, 145)
 
-gauge = Image.open('gauge.png')
-gauge.paste(dial, mask=dial)  # Paste needle onto gauge
-gauge.save(output_file_name)
+locCalcPlaceNeedle = (
+        locGaugePlaceNeedle[0] - math.trunc(locNeedleRotate[0] * NeedleResizeFactor) ,
+        locGaugePlaceNeedle[1] - math.trunc(locNeedleRotate[1] * NeedleResizeFactor)
+    )
+
+for percent in percentages:
+    fraction = percent / 100
+    gaugeDegrees = 180 + 90
+    rotation = ( gaugeDegrees ) * fraction  # 180 degrees because the gauge is half a circle
+    rotation = gaugeDegrees / 2 - rotation  # Factor in the needle graphic pointing to 50 (90 degrees)
+
+    dial = Image.open(fnImgNeedle)
+    #  ,expand=True not working well, better to create needle canvas big enough for needle to fit in all directions after rotation.
+    dial = dial.rotate(rotation, resample=PIL.Image.BICUBIC, center=locNeedleRotate)  # Rotate needle
+    dial = dial.resize( (math.trunc(dial.size[0]*NeedleResizeFactor), math.trunc(dial.size[1]*NeedleResizeFactor) ) )
+    if debug: dial.save(f"needle-rotate-{percent}.png")
+
+    gauge = Image.open(fnImgGauge)
+
+
+
+    print(f"Debug {[item1 + item2 for item1, item2 in zip(locGaugePlaceNeedle, locNeedleRotate)]} {fnImgNeedle}:{dial.size} {fnImgGauge}:{gauge.size} place:{locCalcPlaceNeedle} rotation:{rotation}")
+    gauge.paste(dial, locCalcPlaceNeedle, mask=dial)  # Paste needle onto gauge
+    gauge.save(output_file_name_template.format(percent=percent))
